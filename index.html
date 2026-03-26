@@ -21,17 +21,6 @@
       position: relative;
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="20" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="85" r="4" fill="rgba(255,255,255,0.1)"/></svg>');
-      pointer-events: none;
-    }
-
     .dashboard {
       max-width: 1400px;
       margin: 0 auto;
@@ -39,7 +28,6 @@
       z-index: 1;
     }
 
-    /* Header */
     .header {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
@@ -84,12 +72,16 @@
       animation: pulse 2s infinite;
     }
 
+    .sync-dot.offline {
+      background: #ff9800;
+      animation: none;
+    }
+
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(1.2); }
     }
 
-    /* Stats Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -139,7 +131,6 @@
       word-break: break-word;
     }
 
-    /* Main Card */
     .main-card {
       background: white;
       border-radius: 30px;
@@ -239,7 +230,11 @@
       color: white;
     }
 
-    /* Table Styles - Improved for long text */
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .table-container {
       overflow-x: auto;
       border-radius: 20px;
@@ -259,20 +254,14 @@
       font-weight: 600;
       color: #495057;
       border-bottom: 2px solid #e9ecef;
-      position: sticky;
-      top: 0;
-      background: #f8f9fa;
     }
 
     .expense-table td {
       padding: 15px;
       border-bottom: 1px solid #e9ecef;
       vertical-align: middle;
-      max-width: 250px;
-      word-wrap: break-word;
     }
 
-    /* Category badge with ellipsis for long text */
     .category-badge {
       display: inline-block;
       background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
@@ -287,32 +276,13 @@
       color: #667eea;
     }
 
-    /* Description with tooltip for long text */
-    .description-cell {
-      max-width: 200px;
-      position: relative;
-    }
-    
     .description-text {
       display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       cursor: help;
-    }
-    
-    .description-text:hover {
-      white-space: normal;
-      word-wrap: break-word;
-      background: #f8f9fa;
-      position: absolute;
-      z-index: 10;
-      width: auto;
-      min-width: 200px;
-      max-width: 300px;
-      padding: 5px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 200px;
     }
 
     .status-badge {
@@ -353,11 +323,6 @@
     .action-btn-planned { background: #fff3cd; color: #856404; }
     .action-btn-delete { background: #e2e3e5; color: #383d41; }
 
-    .action-btn:hover {
-      transform: scale(1.05);
-    }
-
-    /* Admin Panel - Enhanced */
     .admin-panel {
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       border-radius: 20px;
@@ -392,7 +357,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Analytics Cards */
     .analytics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -407,38 +371,12 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
 
-    .analytics-card h4 {
-      margin-bottom: 15px;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .category-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
     .category-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px;
       border-bottom: 1px solid #e9ecef;
-    }
-
-    .category-name {
-      font-weight: 500;
-      max-width: 60%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .category-amount {
-      font-weight: 700;
-      color: #667eea;
     }
 
     .progress-bar {
@@ -487,12 +425,6 @@
       color: #6c757d;
     }
 
-    .empty-state i {
-      font-size: 4rem;
-      margin-bottom: 20px;
-      opacity: 0.3;
-    }
-
     .toolbar {
       display: flex;
       gap: 12px;
@@ -500,29 +432,40 @@
       flex-wrap: wrap;
     }
 
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 768px) {
       body { padding: 10px; }
       .stat-number { font-size: 1.2rem; }
-      .category-badge { max-width: 150px; }
     }
   </style>
 </head>
 <body>
 <div class="dashboard">
-  <!-- Header -->
   <div class="header">
     <div class="logo-area">
       <h1><i class="fas fa-receipt"></i> CashierPro</h1>
       <p style="font-size: 0.85rem; color: #6c757d; margin-top: 5px;">Smart Expense Management System</p>
     </div>
     <div class="sync-status-card">
-      <div class="sync-dot"></div>
-      <span>Online · Ready</span>
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">Checking connection...</span>
       <i class="fab fa-google" style="color: #34a853;"></i>
     </div>
   </div>
 
-  <!-- Stats Grid -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-header">
@@ -554,7 +497,6 @@
     </div>
   </div>
 
-  <!-- Add Expense Form -->
   <div class="main-card">
     <div class="section-title">
       <i class="fas fa-plus-circle" style="color: #667eea;"></i>
@@ -568,12 +510,7 @@
       <div class="input-group">
         <label><i class="fas fa-folder"></i> Expense Category</label>
         <select id="expCategory">
-          <option>Pharmacy Council Inspection</option>
-          <option>Computer & POS</option>
-          <option>Pharmacy License & Permits</option>
-          <option>Construction</option>
-          <option>Staff Salary</option>
-          <option>Utilities</option>
+          <option>Loading...</option>
         </select>
       </div>
       <div class="input-group">
@@ -602,13 +539,12 @@
       </div>
       <div class="input-group">
         <button id="addExpenseBtn" class="btn-primary">
-          <i class="fas fa-save"></i> Save Expense
+          <i class="fas fa-save"></i> Save to Google Sheets
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Expenses Table -->
   <div class="main-card">
     <div class="section-title">
       <i class="fas fa-table"></i>
@@ -616,27 +552,18 @@
     </div>
     
     <div class="toolbar">
+      <button id="syncFromSheetsBtn" class="btn-secondary">
+        <i class="fas fa-download"></i> Sync from Sheets
+      </button>
       <button id="refreshLocalBtn" class="btn-secondary">
         <i class="fas fa-refresh"></i> Refresh
-      </button>
-      <button id="clearAllBtn" class="btn-secondary">
-        <i class="fas fa-trash"></i> Clear All
       </button>
     </div>
 
     <div class="table-container">
       <table class="expense-table">
         <thead>
-          <tr>
-            <th>Date</th>
-            <th>Category</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Paid By</th>
-            <th>Status</th>
-            <th>Reference</th>
-            <th>Actions</th>
-          </tr>
+          <tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Paid By</th><th>Status</th><th>Reference</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
           <tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i><br>No expenses yet. Add your first expense above!</td></tr>
@@ -645,38 +572,30 @@
     </div>
   </div>
 
-  <!-- Admin Panel with Working Analytics -->
   <div class="admin-panel">
     <div class="admin-toggle" id="adminToggle">
       <span><i class="fas fa-chart-bar"></i> Admin Analytics Dashboard</span>
       <i class="fas fa-chevron-down"></i>
     </div>
     <div class="admin-content" id="adminContent">
-      <div class="config-section" style="background: white; padding: 20px; border-radius: 15px;">
+      <div style="background: white; padding: 20px; border-radius: 15px;">
         <h3 style="margin-bottom: 15px;"><i class="fab fa-google"></i> Google Sheets Configuration</h3>
         <div class="form-grid">
           <div class="input-group">
-            <label><i class="fas fa-id-card"></i> Sheet ID</label>
-            <input type="text" id="sheetId" placeholder="Enter your Google Sheet ID">
-          </div>
-          <div class="input-group">
-            <label><i class="fas fa-key"></i> API Key</label>
-            <input type="password" id="apiKey" placeholder="Enter your API Key">
+            <label><i class="fas fa-globe"></i> Apps Script Web App URL</label>
+            <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec">
+            <small style="color: #6c757d; margin-top: 5px;">Paste your Google Apps Script Web App URL here</small>
           </div>
           <div class="input-group">
             <button id="testConnectionBtn" class="btn-secondary">
-              <i class="fas fa-plug"></i> Test Connection
+              <i class="fas fa-plug"></i> Test & Save Connection
             </button>
           </div>
         </div>
         <hr style="margin: 20px 0;">
-        
-        <!-- Analytics Section - Now Working -->
         <div id="adminAnalytics">
           <h4><i class="fas fa-chart-pie"></i> Expense Analytics</h4>
-          <div class="analytics-grid" id="analyticsGrid">
-            <!-- Will be populated dynamically -->
-          </div>
+          <div class="analytics-grid" id="analyticsGrid"></div>
         </div>
       </div>
     </div>
@@ -684,26 +603,159 @@
 </div>
 
 <script>
-  // Data storage
   let expenses = [];
+  let categories = [];
+  let webAppUrl = localStorage.getItem('webAppUrl') || '';
 
-  // Load initial data
-  function loadInitialData() {
+  // Load saved URL
+  if (webAppUrl) {
+    document.getElementById('webAppUrl').value = webAppUrl;
+  }
+
+  // Call Google Apps Script
+  async function callAppsScript(action, data = {}) {
+    if (!webAppUrl) {
+      console.log('No Web App URL configured');
+      return null;
+    }
+
+    const params = new URLSearchParams({ action, ...data });
+    const url = `${webAppUrl}?${params.toString()}`;
+    
+    try {
+      const response = await fetch(url);
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error calling Apps Script:', error);
+      return null;
+    }
+  }
+
+  // Fetch categories from Google Sheets
+  async function fetchCategoriesFromSheets() {
+    if (!webAppUrl) {
+      categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary', 'Utilities'];
+      updateCategoryDropdown();
+      return;
+    }
+
+    try {
+      const result = await callAppsScript('getCategories');
+      if (result && result.success && result.data.length > 0) {
+        categories = result.data;
+      } else {
+        categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary', 'Utilities'];
+      }
+      updateCategoryDropdown();
+      updateSyncStatus(true);
+    } catch (error) {
+      categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary', 'Utilities'];
+      updateCategoryDropdown();
+      updateSyncStatus(false);
+    }
+  }
+
+  // Fetch expenses from Google Sheets
+  async function fetchExpensesFromSheets() {
+    if (!webAppUrl) {
+      loadFromLocalStorage();
+      return;
+    }
+
+    try {
+      const result = await callAppsScript('getExpenses');
+      if (result && result.success) {
+        expenses = result.data;
+        saveToLocalStorage();
+        renderTable();
+        updateStats();
+        updateAdminAnalytics();
+        showAlert(`Loaded ${expenses.length} expenses from Google Sheets`, 'success');
+        updateSyncStatus(true);
+      } else {
+        loadFromLocalStorage();
+      }
+    } catch (error) {
+      loadFromLocalStorage();
+      updateSyncStatus(false);
+    }
+  }
+
+  // Add expense to Google Sheets
+  async function addExpenseToSheets(expense) {
+    if (!webAppUrl) {
+      showAlert('Please configure Google Sheets URL in Admin Panel', 'error');
+      return false;
+    }
+
+    try {
+      const result = await callAppsScript('addExpense', {
+        id: expense.id,
+        date: expense.date,
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        paidBy: expense.paidBy,
+        status: expense.status,
+        receiptRef: expense.receiptRef
+      });
+      
+      if (result && result.success) {
+        return true;
+      } else {
+        showAlert('Failed to save to Google Sheets', 'error');
+        return false;
+      }
+    } catch (error) {
+      showAlert('Error saving to Google Sheets', 'error');
+      return false;
+    }
+  }
+
+  // Update status in Google Sheets
+  async function updateStatusInSheets(expenseId, newStatus) {
+    if (!webAppUrl) return false;
+    
+    try {
+      const result = await callAppsScript('updateStatus', {
+        id: expenseId,
+        status: newStatus
+      });
+      return result && result.success;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Delete expense from Google Sheets
+  async function deleteExpenseFromSheets(expenseId) {
+    if (!webAppUrl) return false;
+    
+    try {
+      const result = await callAppsScript('deleteExpense', {
+        id: expenseId
+      });
+      return result && result.success;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function updateCategoryDropdown() {
+    const select = document.getElementById('expCategory');
+    select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+  }
+
+  function loadFromLocalStorage() {
     const stored = localStorage.getItem('cashier_expenses');
     if (stored) {
       expenses = JSON.parse(stored);
     } else {
-      // Sample data with proper category names
       expenses = [
         { id: '1', date: '2026-03-02', category: 'Pharmacy Council Inspection', description: 'Control Number', amount: 100000, paidBy: 'Fides', status: 'Paid', receiptRef: '' },
         { id: '2', date: '2026-03-04', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 200000, paidBy: 'Gervas', status: 'Paid', receiptRef: '' },
-        { id: '3', date: '2026-03-06', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 1000000, paidBy: 'Fides-Mpesa', status: 'Paid', receiptRef: '' },
-        { id: '4', date: '2026-03-06', category: 'Computer & POS', description: 'Jovast Informatics for POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
-        { id: '5', date: '2026-03-14', category: 'Construction', description: 'Signboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
-        { id: '6', date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '7', date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '8', date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '9', date: '', category: 'Pharmacy License & Permits', description: 'Pharmacist Certificate Renewal', amount: 1500000, paidBy: '', status: 'Planned', receiptRef: '' }
+        { id: '3', date: '2026-03-06', category: 'Computer & POS', description: 'POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
       ];
     }
     renderTable();
@@ -716,7 +768,7 @@
   }
 
   // Add expense
-  function addExpense() {
+  async function addExpense() {
     const newExpense = {
       id: Date.now() + '-' + Math.random().toString(36).substr(2, 8),
       date: document.getElementById('payDate').value,
@@ -733,23 +785,30 @@
       return;
     }
     
+    // Add to local first
     expenses.unshift(newExpense);
     renderTable();
     updateStats();
     updateAdminAnalytics();
     saveToLocalStorage();
     
+    // Try to save to Google Sheets
+    const saved = await addExpenseToSheets(newExpense);
+    if (saved) {
+      showAlert('Expense saved to Google Sheets!', 'success');
+    } else {
+      showAlert('Expense saved locally only. Will sync when connected.', 'info');
+    }
+    
     // Clear form
     document.getElementById('description').value = '';
     document.getElementById('amountTzs').value = '';
     document.getElementById('receiptRef').value = '';
     document.getElementById('paidBy').value = '';
-    
-    showAlert('Expense added successfully!', 'success');
   }
 
   // Change status
-  function changeStatus(expenseId, newStatus) {
+  async function changeStatus(expenseId, newStatus) {
     const expense = expenses.find(e => e.id === expenseId);
     if (expense) {
       expense.status = newStatus;
@@ -757,48 +816,52 @@
       updateStats();
       updateAdminAnalytics();
       saveToLocalStorage();
-      showAlert(`Status changed to ${newStatus}`, 'success');
+      
+      const updated = await updateStatusInSheets(expenseId, newStatus);
+      if (updated) {
+        showAlert(`Status changed to ${newStatus} and synced to Sheets`, 'success');
+      } else {
+        showAlert(`Status changed locally only`, 'info');
+      }
     }
   }
 
   // Delete expense
-  function deleteExpense(expenseId) {
+  async function deleteExpense(expenseId) {
     if (confirm('Delete this expense?')) {
       expenses = expenses.filter(e => e.id !== expenseId);
       renderTable();
       updateStats();
       updateAdminAnalytics();
       saveToLocalStorage();
-      showAlert('Expense deleted', 'success');
+      
+      const deleted = await deleteExpenseFromSheets(expenseId);
+      if (deleted) {
+        showAlert('Expense deleted from Google Sheets', 'success');
+      } else {
+        showAlert('Expense deleted locally only', 'info');
+      }
     }
   }
 
-  // Clear all data
-  function clearAllData() {
-    if (confirm('⚠️ Delete ALL expenses? This cannot be undone.')) {
-      expenses = [];
-      renderTable();
-      updateStats();
-      updateAdminAnalytics();
-      saveToLocalStorage();
-      showAlert('All expenses cleared', 'info');
-    }
+  function truncateText(text, maxLength) {
+    if (!text) return '—';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   }
 
-  // Render table with improved display for long text
   function renderTable() {
     const tbody = document.getElementById('tableBody');
     if (expenses.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i><br>No expenses yet. Add your first expense above!</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i><br>No expenses yet.</td></tr>';
       return;
     }
     
     tbody.innerHTML = expenses.map(exp => `
       <tr>
-        <td><i class="fas fa-calendar-alt" style="color: #667eea; margin-right: 5px;"></i> ${exp.date || '—'}</td>
+        <td>${exp.date || '—'}</td>
         <td><span class="category-badge" title="${escapeHtml(exp.category)}">${escapeHtml(truncateText(exp.category, 25))}</span></td>
-        <td class="description-cell"><span class="description-text" title="${escapeHtml(exp.description)}">${escapeHtml(truncateText(exp.description, 30))}</span></td>
-        <td style="font-weight: 700; color: #2c3e50;">${(exp.amount || 0).toLocaleString()} TZS</td>
+        <td><span class="description-text" title="${escapeHtml(exp.description)}">${escapeHtml(truncateText(exp.description, 30))}</span></td>
+        <td style="font-weight: 700;">${(exp.amount || 0).toLocaleString()} TZS</td>
         <td>${exp.paidBy || '—'}</td>
         <td><span class="status-badge status-${exp.status}">${exp.status}</span></td>
         <td><small>${exp.receiptRef || '—'}</small></td>
@@ -808,7 +871,6 @@
       </tr>
     `).join('');
     
-    // Attach event listeners
     document.querySelectorAll('.action-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = btn.getAttribute('data-id');
@@ -818,11 +880,6 @@
         else if (newStatus) changeStatus(id, newStatus);
       });
     });
-  }
-
-  function truncateText(text, maxLength) {
-    if (!text) return '—';
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   }
 
   function getActionButtons(exp) {
@@ -847,7 +904,6 @@
     }
   }
 
-  // Update statistics
   function updateStats() {
     let total = 0, paid = 0, planned = 0, cancelled = 0;
     expenses.forEach(exp => {
@@ -858,18 +914,16 @@
       else if (exp.status === 'Cancelled') cancelled += amt;
     });
     
-    document.getElementById('totalAmount').innerHTML = total.toLocaleString() + ' <span style="font-size: 0.9rem;">TZS</span>';
-    document.getElementById('totalPaid').innerHTML = paid.toLocaleString() + ' <span style="font-size: 0.9rem;">TZS</span>';
-    document.getElementById('totalPlanned').innerHTML = planned.toLocaleString() + ' <span style="font-size: 0.9rem;">TZS</span>';
-    document.getElementById('totalCancelled').innerHTML = cancelled.toLocaleString() + ' <span style="font-size: 0.9rem;">TZS</span>';
+    document.getElementById('totalAmount').innerHTML = total.toLocaleString() + ' TZS';
+    document.getElementById('totalPaid').innerHTML = paid.toLocaleString() + ' TZS';
+    document.getElementById('totalPlanned').innerHTML = planned.toLocaleString() + ' TZS';
+    document.getElementById('totalCancelled').innerHTML = cancelled.toLocaleString() + ' TZS';
   }
 
-  // Update Admin Analytics (Working!)
   function updateAdminAnalytics() {
     const analyticsDiv = document.getElementById('analyticsGrid');
     if (!analyticsDiv) return;
     
-    // Calculate category totals
     const categoryTotals = {};
     const monthlyTotals = {};
     let totalPaidAmount = 0;
@@ -879,7 +933,6 @@
       if (exp.status === 'Paid') {
         categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + amt;
         totalPaidAmount += amt;
-        
         if (exp.date && exp.date.length >= 7) {
           const month = exp.date.substring(0, 7);
           monthlyTotals[month] = (monthlyTotals[month] || 0) + amt;
@@ -887,84 +940,75 @@
       }
     });
     
-    // Sort categories by amount
     const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
     
-    // Create analytics HTML
-    let analyticsHTML = `
+    analyticsDiv.innerHTML = `
       <div class="analytics-card">
-        <h4><i class="fas fa-chart-line"></i> Summary Overview</h4>
-        <div style="margin-bottom: 15px;">
-          <p><strong>Total Paid Expenses:</strong> ${totalPaidAmount.toLocaleString()} TZS</p>
-          <p><strong>Total Transactions:</strong> ${expenses.length}</p>
-          <p><strong>Paid Items:</strong> ${expenses.filter(e => e.status === 'Paid').length}</p>
-          <p><strong>Planned Items:</strong> ${expenses.filter(e => e.status === 'Planned').length}</p>
-        </div>
+        <h4><i class="fas fa-chart-line"></i> Summary</h4>
+        <p><strong>Total Paid:</strong> ${totalPaidAmount.toLocaleString()} TZS</p>
+        <p><strong>Transactions:</strong> ${expenses.length}</p>
+        <p><strong>Paid Items:</strong> ${expenses.filter(e => e.status === 'Paid').length}</p>
       </div>
-      
       <div class="analytics-card">
-        <h4><i class="fas fa-chart-pie"></i> Top Categories by Spending</h4>
-        <div class="category-list">
-          ${sortedCategories.length > 0 ? sortedCategories.slice(0, 5).map(([cat, amt]) => `
+        <h4><i class="fas fa-chart-pie"></i> Top Categories</h4>
+        ${sortedCategories.slice(0, 5).map(([cat, amt]) => `
+          <div>
             <div class="category-item">
-              <span class="category-name" title="${escapeHtml(cat)}">${escapeHtml(truncateText(cat, 30))}</span>
-              <span class="category-amount">${amt.toLocaleString()} TZS</span>
+              <span title="${escapeHtml(cat)}">${escapeHtml(truncateText(cat, 25))}</span>
+              <span>${amt.toLocaleString()} TZS</span>
             </div>
             <div class="progress-bar">
               <div class="progress-fill" style="width: ${(amt / totalPaidAmount * 100)}%"></div>
             </div>
-          `).join('') : '<p style="color: #6c757d;">No paid expenses yet</p>'}
-        </div>
-      </div>
-      
-      <div class="analytics-card">
-        <h4><i class="fas fa-calendar-alt"></i> Monthly Breakdown</h4>
-        <div class="category-list">
-          ${Object.entries(monthlyTotals).length > 0 ? Object.entries(monthlyTotals).sort().reverse().map(([month, amt]) => `
-            <div class="category-item">
-              <span class="category-name">${month}</span>
-              <span class="category-amount">${amt.toLocaleString()} TZS</span>
-            </div>
-          `).join('') : '<p style="color: #6c757d;">No monthly data yet</p>'}
-        </div>
+          </div>
+        `).join('') || '<p>No data yet</p>'}
       </div>
     `;
-    
-    analyticsDiv.innerHTML = analyticsHTML;
   }
 
-  // Test Google Sheets connection
+  function updateSyncStatus(connected) {
+    const dot = document.getElementById('syncDot');
+    const text = document.getElementById('syncText');
+    if (connected) {
+      dot.className = 'sync-dot';
+      text.innerHTML = 'Connected to Google Sheets ✓';
+    } else {
+      dot.className = 'sync-dot offline';
+      text.innerHTML = 'Offline · Using local storage';
+    }
+  }
+
   async function testConnection() {
-    const sheetId = document.getElementById('sheetId').value;
-    const apiKey = document.getElementById('apiKey').value;
-    
-    if (!sheetId || !apiKey) {
-      showAlert('Please enter both Sheet ID and API Key', 'error');
+    const url = document.getElementById('webAppUrl').value;
+    if (!url) {
+      showAlert('Please enter your Google Apps Script Web App URL', 'error');
       return;
     }
     
-    localStorage.setItem('sheetId', sheetId);
-    localStorage.setItem('apiKey', apiKey);
+    webAppUrl = url;
+    localStorage.setItem('webAppUrl', url);
     
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Expenses!A1:A1?key=${apiKey}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        showAlert('✅ Connection successful! Google Sheets is ready', 'success');
+      const result = await callAppsScript('getCategories');
+      if (result && result.success) {
+        showAlert('✅ Connected successfully to Google Sheets!', 'success');
+        await fetchCategoriesFromSheets();
+        await fetchExpensesFromSheets();
+        updateSyncStatus(true);
       } else {
-        showAlert('❌ Connection failed. Check Sheet ID and API Key', 'error');
+        showAlert('❌ Connection failed. Check your URL and make sure it\'s deployed.', 'error');
+        updateSyncStatus(false);
       }
     } catch (error) {
       showAlert('❌ Connection error: ' + error.message, 'error');
+      updateSyncStatus(false);
     }
   }
 
-  // Show alert
-  function showAlert(message, type = 'info') {
+  function showAlert(message, type) {
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
-    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-    alert.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+    alert.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> ${message}`;
     document.body.appendChild(alert);
     setTimeout(() => alert.remove(), 4000);
   }
@@ -981,35 +1025,18 @@
 
   // Event listeners
   document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
-  document.getElementById('refreshLocalBtn').addEventListener('click', () => { 
-    loadInitialData(); 
-    showAlert('Data refreshed', 'success');
-  });
-  document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+  document.getElementById('syncFromSheetsBtn').addEventListener('click', fetchExpensesFromSheets);
+  document.getElementById('refreshLocalBtn').addEventListener('click', () => { loadFromLocalStorage(); showAlert('Data refreshed', 'success'); });
   document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
   
-  // Admin panel toggle
   document.getElementById('adminToggle').addEventListener('click', () => {
     const content = document.getElementById('adminContent');
     content.classList.toggle('show');
-    const icon = document.querySelector('#adminToggle i:last-child');
-    if (icon.classList.contains('fa-chevron-down')) {
-      icon.classList.remove('fa-chevron-down');
-      icon.classList.add('fa-chevron-up');
-    } else {
-      icon.classList.remove('fa-chevron-up');
-      icon.classList.add('fa-chevron-down');
-    }
   });
   
-  // Load saved config
-  const savedSheetId = localStorage.getItem('sheetId');
-  const savedApiKey = localStorage.getItem('apiKey');
-  if (savedSheetId) document.getElementById('sheetId').value = savedSheetId;
-  if (savedApiKey) document.getElementById('apiKey').value = savedApiKey;
-  
   // Initialize
-  loadInitialData();
+  fetchCategoriesFromSheets();
+  loadFromLocalStorage();
 </script>
 </body>
 </html>
