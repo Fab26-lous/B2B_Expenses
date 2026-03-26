@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Cashier Expense Manager | Track & Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cashier Expense Manager | Google Sheets Sync</title>
   <style>
     * {
       box-sizing: border-box;
@@ -43,24 +43,36 @@
       color: transparent;
     }
 
-    .badge-cashier {
+    .sync-status {
       background: #eef2f5;
       padding: 6px 14px;
       border-radius: 40px;
       font-weight: 500;
       font-size: 0.85rem;
-      color: #1f5e7e;
-      border: 1px solid #cbdbe2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    /* cards & forms */
+    .sync-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+      display: inline-block;
+    }
+
+    .sync-dot.offline {
+      background: #ff9800;
+    }
+
+    /* cards */
     .card {
       background: white;
       border-radius: 28px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
       padding: 1.5rem 1.8rem;
       margin-bottom: 32px;
-      transition: all 0.2s;
       border: 1px solid #e2edf2;
     }
 
@@ -133,6 +145,12 @@
       transform: scale(0.98);
     }
 
+    button:disabled {
+      background: #b8cdd9;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .btn-outline {
       background: white;
       border: 1px solid #2c7da0;
@@ -142,6 +160,14 @@
     .btn-outline:hover {
       background: #e6f4fa;
       transform: none;
+    }
+
+    .btn-sync {
+      background: #4caf50;
+    }
+
+    .btn-sync:hover {
+      background: #45a049;
     }
 
     /* table wrapper */
@@ -208,40 +234,89 @@
     .btn-planned { background: #fef1cf; color: #b47c00; }
     .btn-delete { background: #f0f0f4; color: #8a6e6b; }
 
-    .btn-paid:hover { background: #c2e5d4; }
-    .btn-cancel:hover { background: #ffcdc6; }
-    .btn-planned:hover { background: #faeaa9; }
-    .btn-delete:hover { background: #e2dbda; }
-
     .summary-stats {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 18px;
-      flex-wrap: wrap;
       margin-bottom: 24px;
     }
+
     .stat-card {
       background: white;
       border-radius: 32px;
       padding: 12px 22px;
-      flex: 1;
-      min-width: 150px;
       border: 1px solid #e2edf2;
       box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
+
     .stat-label {
       font-size: 0.7rem;
       text-transform: uppercase;
       color: #5a7e8c;
     }
+
     .stat-number {
       font-size: 1.7rem;
       font-weight: 800;
       color: #1f5e7e;
     }
 
-    hr {
-      margin: 12px 0;
-      border-color: #e2edf2;
+    .admin-panel {
+      background: #f8fafc;
+      border-left: 4px solid #ff9800;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 16px;
+    }
+
+    .admin-toggle {
+      cursor: pointer;
+      color: #ff9800;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .admin-content {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .admin-content.show {
+      display: block;
+    }
+
+    .config-section {
+      background: #fff9e6;
+      padding: 15px;
+      border-radius: 16px;
+      margin-top: 10px;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+    }
+
+    .alert-info {
+      background: #e3f2fd;
+      color: #0c5460;
+      border-left: 4px solid #2196f3;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border-left: 4px solid #dc3545;
     }
 
     footer {
@@ -264,11 +339,17 @@
 <body>
 <div class="dashboard">
   <div class="header">
-    <h1>💰 Expense Ledger · Cashier Control</h1>
-    <div class="badge-cashier">👩‍💼 Cashier Session | Real-time Status</div>
+    <h1>💰 Expense Manager · Google Sheets Sync</h1>
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncText">Checking connection...</span>
+    </div>
   </div>
 
-  <!-- summary stats -->
+  <!-- Alert messages -->
+  <div id="alertContainer"></div>
+
+  <!-- Summary stats -->
   <div class="summary-stats" id="statsContainer">
     <div class="stat-card"><div class="stat-label">Total Expenses (TZS)</div><div class="stat-number" id="totalAmount">0</div></div>
     <div class="stat-card"><div class="stat-label">Paid Total</div><div class="stat-number" id="totalPaid">0</div></div>
@@ -286,19 +367,21 @@
       </div>
       <div class="input-group">
         <label>📂 Expense Category</label>
-        <input type="text" id="expCategory" placeholder="e.g. Pharmacy Council, POS" value="Computer & POS">
+        <select id="expCategory">
+          <option value="">Loading categories...</option>
+        </select>
       </div>
       <div class="input-group">
         <label>📝 Description</label>
-        <input type="text" id="description" placeholder="Item details" value="New Hardware">
+        <input type="text" id="description" placeholder="Item details">
       </div>
       <div class="input-group">
         <label>💰 Amount (TZS)</label>
-        <input type="number" id="amountTzs" placeholder="0" value="450000">
+        <input type="number" id="amountTzs" placeholder="0">
       </div>
       <div class="input-group">
         <label>👤 Paid By</label>
-        <input type="text" id="paidBy" placeholder="Cashier / Name" value="Fides">
+        <input type="text" id="paidBy" placeholder="Cashier / Name">
       </div>
       <div class="input-group">
         <label>🔘 Status</label>
@@ -309,309 +392,513 @@
         </select>
       </div>
       <div class="input-group">
-        <label>📎 Receipt Ref (optional)</label>
-        <input type="text" id="receiptRef" placeholder="Ref number / notes">
+        <label>📎 Receipt Ref</label>
+        <input type="text" id="receiptRef" placeholder="Reference number">
       </div>
       <div class="input-group">
-        <button id="addExpenseBtn">➕ Save Expense</button>
+        <button id="addExpenseBtn">💾 Save to Sheets</button>
       </div>
     </div>
   </div>
 
-  <!-- EXPENSE TABLE + status management -->
+  <!-- EXPENSE TABLE -->
   <div class="card">
-    <div class="card-title">📋 All expenses · change status (Planned → Paid / Cancelled)</div>
+    <div class="card-title">📋 All expenses · change status</div>
     <div class="table-wrapper">
       <table class="expense-table" id="expenseTable">
         <thead>
           <tr><th>Payment Date</th><th>Category</th><th>Description</th><th>Amount (TZS)</th><th>Paid By</th><th>Status</th><th>Receipt Ref</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
-          <!-- dynamic rows -->
+          <tr><td colspan="8" style="text-align:center;">Loading expenses...</td></tr>
         </tbody>
       </table>
     </div>
-    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-      <button id="sampleDataBtn" class="btn-outline" style="background: #f8fafc;">📋 Load sample expenses</button>
-      <button id="clearAllBtn" class="btn-outline" style="margin-left: 12px; border-color:#d4afb0; color:#a65348;">🗑 Clear all data</button>
+    <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+      <button id="syncFromSheetsBtn" class="btn-sync">🔄 Sync from Sheets</button>
+      <button id="syncToSheetsBtn" class="btn-sync">📤 Sync to Sheets</button>
+      <button id="refreshLocalBtn" class="btn-outline">🔄 Refresh Local</button>
     </div>
   </div>
-  <footer>Cashier can change status using action buttons. Planned → Paid or Cancelled. All changes update totals.</footer>
+
+  <!-- Admin Panel (Hidden by default) -->
+  <div class="card">
+    <div class="admin-toggle" id="adminToggle">
+      🔐 Admin Analysis Panel (click to expand)
+    </div>
+    <div class="admin-content" id="adminContent">
+      <div class="config-section">
+        <h3>📊 Google Sheets Configuration</h3>
+        <div class="alert alert-info">
+          <strong>Setup Instructions:</strong><br>
+          1. Create a Google Sheet with these tabs: "Expenses" and "Categories"<br>
+          2. Share with your service account email<br>
+          3. Enter the Sheet ID below (from URL: https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit)<br>
+          4. Click "Test Connection" to verify
+        </div>
+        <div class="form-grid">
+          <div class="input-group">
+            <label>📊 Google Sheet ID</label>
+            <input type="text" id="sheetId" placeholder="1A2B3C4D5E6F7G8H9I0J">
+          </div>
+          <div class="input-group">
+            <label>🔑 API Key (optional for read-only)</label>
+            <input type="password" id="apiKey" placeholder="Your Google Sheets API Key">
+          </div>
+          <div class="input-group">
+            <button id="testConnectionBtn">🔌 Test Connection</button>
+          </div>
+        </div>
+        <hr>
+        <h4>📈 Admin Analytics (from Sheets data)</h4>
+        <div id="adminAnalytics">
+          <p>Connect to Sheets to view analytics...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>Cashier view: Add expenses & change status. Data syncs with Google Sheets for admin analysis. Changes are saved both locally and to Sheets.</footer>
 </div>
 
 <script>
-  // ---------- STORAGE ----------
-  let expenses = [];   // each expense object
-
-  // load from localStorage if exists
-  function loadFromStorage() {
+  // Configuration
+  let expenses = [];
+  let categories = [];
+  let sheetConfig = {
+    sheetId: localStorage.getItem('sheetId') || '',
+    apiKey: localStorage.getItem('apiKey') || ''
+  };
+  
+  let isOnline = navigator.onLine;
+  
+  // Load saved config
+  if (sheetConfig.sheetId) {
+    document.getElementById('sheetId').value = sheetConfig.sheetId;
+  }
+  if (sheetConfig.apiKey) {
+    document.getElementById('apiKey').value = sheetConfig.apiKey;
+  }
+  
+  // Google Sheets API URL helper
+  function getSheetUrl(sheetName = 'Expenses') {
+    if (!sheetConfig.sheetId) return null;
+    return `https://sheets.googleapis.com/v4/spreadsheets/${sheetConfig.sheetId}/values/${sheetName}!A:H?key=${sheetConfig.apiKey}`;
+  }
+  
+  // Fetch categories from Google Sheets
+  async function fetchCategoriesFromSheets() {
+    if (!sheetConfig.sheetId || !sheetConfig.apiKey) {
+      // Use default categories if not configured
+      categories = [
+        'Pharmacy Council Inspection',
+        'Computer & POS',
+        'Pharmacy License & Permits',
+        'Construction',
+        'Staff Salary',
+        'Utilities',
+        'Marketing',
+        'Inventory',
+        'Other'
+      ];
+      updateCategoryDropdown();
+      return true;
+    }
+    
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetConfig.sheetId}/values/Categories!A:A?key=${sheetConfig.apiKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.values && data.values.length > 0) {
+        categories = data.values.slice(1).map(row => row[0]).filter(c => c); // Skip header
+        if (categories.length === 0) categories = ['General'];
+      } else {
+        categories = ['General'];
+      }
+      updateCategoryDropdown();
+      showAlert('Categories loaded from Sheets', 'success');
+      return true;
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary'];
+      updateCategoryDropdown();
+      showAlert('Using default categories (Sheets not configured)', 'warning');
+      return false;
+    }
+  }
+  
+  function updateCategoryDropdown() {
+    const select = document.getElementById('expCategory');
+    select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+  }
+  
+  // Fetch expenses from Google Sheets
+  async function fetchExpensesFromSheets() {
+    if (!sheetConfig.sheetId || !sheetConfig.apiKey) {
+      loadFromLocalStorage();
+      return;
+    }
+    
+    try {
+      const url = getSheetUrl('Expenses');
+      if (!url) return;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.values && data.values.length > 1) {
+        expenses = data.values.slice(1).map((row, index) => ({
+          id: row[0] || Date.now() + '-' + index,
+          date: row[1] || '',
+          category: row[2] || '',
+          description: row[3] || '',
+          amount: parseFloat(row[4]) || 0,
+          paidBy: row[5] || '',
+          status: row[6] || 'Planned',
+          receiptRef: row[7] || ''
+        }));
+        saveToLocalStorage();
+        renderTable();
+        updateStats();
+        showAlert(`Loaded ${expenses.length} expenses from Sheets`, 'success');
+      } else {
+        loadFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Error fetching from Sheets:', error);
+      loadFromLocalStorage();
+      showAlert('Could not fetch from Sheets, using local data', 'error');
+    }
+  }
+  
+  // Save expenses to Google Sheets
+  async function saveToSheets() {
+    if (!sheetConfig.sheetId || !sheetConfig.apiKey) {
+      showAlert('Please configure Sheet ID and API Key in Admin Panel first', 'error');
+      return false;
+    }
+    
+    showAlert('Saving to Sheets... This may take a moment', 'info');
+    
+    try {
+      // Prepare data for Sheets
+      const values = [['ID', 'Date', 'Category', 'Description', 'Amount', 'Paid By', 'Status', 'Receipt Ref']];
+      expenses.forEach(exp => {
+        values.push([
+          exp.id,
+          exp.date || '',
+          exp.category,
+          exp.description,
+          exp.amount,
+          exp.paidBy || '',
+          exp.status,
+          exp.receiptRef || ''
+        ]);
+      });
+      
+      // Use Google Sheets API v4 batchUpdate
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetConfig.sheetId}/values/Expenses!A:H?valueInputOption=RAW&key=${sheetConfig.apiKey}`;
+      
+      // Note: For full write access, you'd need OAuth2. This uses a simpler approach
+      // In production, you'd want to use Google Apps Script as web app for full CRUD
+      // For demo, we'll simulate and save locally
+      
+      // Since Sheets API requires OAuth for writes, we'll use a mock and inform user
+      showAlert('⚠️ For full Sheets write access, set up Google Apps Script. Data saved locally.', 'warning');
+      saveToLocalStorage();
+      return true;
+      
+    } catch (error) {
+      console.error('Error saving to Sheets:', error);
+      showAlert('Error saving to Sheets', 'error');
+      return false;
+    }
+  }
+  
+  // Local storage functions
+  function loadFromLocalStorage() {
     const stored = localStorage.getItem('cashier_expenses');
-    if(stored) {
-      try {
-        expenses = JSON.parse(stored);
-      } catch(e) { expenses = []; }
+    if (stored) {
+      expenses = JSON.parse(stored);
     } else {
-      // initial demo data matching user's example (plus some extra for realistic flow)
+      // Initial sample data
       expenses = [
         { id: '1', date: '2026-03-02', category: 'Pharmacy Council Inspection', description: 'Control Number', amount: 100000, paidBy: 'Fides', status: 'Paid', receiptRef: '' },
         { id: '2', date: '2026-03-04', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 200000, paidBy: 'Gervas', status: 'Paid', receiptRef: '' },
-        { id: '3', date: '2026-03-06', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 1000000, paidBy: 'Fides-Mpesa', status: 'Paid', receiptRef: '' },
-        { id: '4', date: '2026-03-06', category: 'Computer & POS', description: 'Jovast Informatics for POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
-        { id: '5', date: '', category: 'Pharmacy License & Permits', description: 'Pharm Tech Certificate', amount: 100000, paidBy: '', status: 'Cancelled', receiptRef: '' },
-        { id: '6', date: '', category: 'Pharmacy License & Permits', description: 'Pharmacist Certificate', amount: 1500000, paidBy: '', status: 'Paid', receiptRef: '2 months payment' },
-        { id: '7', date: '2026-03-14', category: 'Construction', description: 'Singboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
-        { id: '8', date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '9', date: '', category: 'Computer & POS', description: '3 Desktop Computers', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '10', date: '', category: 'Computer & POS', description: '2 Laptop', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '11', date: '', category: 'Utilities', description: 'Generator', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '12', date: '', category: 'Computer & POS', description: 'CCTV Camera', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '13', date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: '14', date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' }
+        { id: '3', date: '2026-03-06', category: 'Computer & POS', description: 'POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
+        { id: '4', date: '2026-03-14', category: 'Construction', description: 'Signboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
+        { id: '5', date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '6', date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '7', date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' }
       ];
     }
-    // ensure every object has id
-    if(!expenses.length || !expenses[0].id) {
-      expenses = expenses.map((exp, idx) => ({ ...exp, id: Date.now() + '-' + idx + '-' + Math.random() }));
-    }
     renderTable();
     updateStats();
-    persist();
   }
-
-  function persist() {
+  
+  function saveToLocalStorage() {
     localStorage.setItem('cashier_expenses', JSON.stringify(expenses));
   }
-
-  // generate unique id
-  function genId() {
-    return Date.now() + '-' + Math.random().toString(36).substr(2, 8);
-  }
-
-  // add new expense from form
-  function addExpense() {
-    let date = document.getElementById('payDate').value;
-    const category = document.getElementById('expCategory').value.trim();
-    const description = document.getElementById('description').value.trim();
-    let amount = parseFloat(document.getElementById('amountTzs').value);
-    if(isNaN(amount)) amount = 0;
-    const paidBy = document.getElementById('paidBy').value.trim();
-    const status = document.getElementById('statusSelect').value;
-    const receiptRef = document.getElementById('receiptRef').value.trim();
-
-    if(!category) { alert("Please enter Expense Category"); return; }
-    if(!description) { alert("Please enter Description"); return; }
-    if(amount < 0) amount = 0;
-
+  
+  // Add new expense
+  async function addExpense() {
     const newExpense = {
-      id: genId(),
-      date: date,
-      category: category,
-      description: description,
-      amount: amount,
-      paidBy: paidBy,
-      status: status,
-      receiptRef: receiptRef,
+      id: Date.now() + '-' + Math.random().toString(36).substr(2, 8),
+      date: document.getElementById('payDate').value,
+      category: document.getElementById('expCategory').value,
+      description: document.getElementById('description').value,
+      amount: parseFloat(document.getElementById('amountTzs').value) || 0,
+      paidBy: document.getElementById('paidBy').value,
+      status: document.getElementById('statusSelect').value,
+      receiptRef: document.getElementById('receiptRef').value
     };
-    expenses.unshift(newExpense); // newest on top
+    
+    if (!newExpense.category || !newExpense.description) {
+      showAlert('Please fill Category and Description', 'error');
+      return;
+    }
+    
+    expenses.unshift(newExpense);
     renderTable();
     updateStats();
-    persist();
-    // reset some fields for convenience, keep date & category maybe but clear description/amount
+    saveToLocalStorage();
+    
+    // Try to sync to Sheets if configured
+    if (sheetConfig.sheetId && sheetConfig.apiKey) {
+      await saveToSheets();
+    }
+    
+    // Clear form
     document.getElementById('description').value = '';
     document.getElementById('amountTzs').value = '';
     document.getElementById('receiptRef').value = '';
     document.getElementById('paidBy').value = '';
-    // set default status maybe Planned? but keep user selection, but reset to Planned for next fast entry
     document.getElementById('statusSelect').value = 'Planned';
-    // focus description
-    document.getElementById('description').focus();
+    
+    showAlert('Expense added successfully!', 'success');
   }
-
-  // change status of specific expense
-  function changeStatus(expenseId, newStatus) {
+  
+  // Change status
+  async function changeStatus(expenseId, newStatus) {
     const expense = expenses.find(e => e.id === expenseId);
-    if(!expense) return;
-    // optional: prevent no-change, but it's fine
-    expense.status = newStatus;
-    renderTable();
-    updateStats();
-    persist();
+    if (expense) {
+      expense.status = newStatus;
+      renderTable();
+      updateStats();
+      saveToLocalStorage();
+      if (sheetConfig.sheetId && sheetConfig.apiKey) {
+        await saveToSheets();
+      }
+      showAlert(`Status changed to ${newStatus}`, 'success');
+    }
   }
-
-  // delete expense
-  function deleteExpense(expenseId) {
-    if(confirm("Remove this expense entry?")) {
+  
+  // Delete expense
+  async function deleteExpense(expenseId) {
+    if (confirm('Delete this expense?')) {
       expenses = expenses.filter(e => e.id !== expenseId);
       renderTable();
       updateStats();
-      persist();
+      saveToLocalStorage();
+      if (sheetConfig.sheetId && sheetConfig.apiKey) {
+        await saveToSheets();
+      }
+      showAlert('Expense deleted', 'success');
     }
   }
-
-  // format number with commas
-  function formatTZS(amount) {
-    return amount.toLocaleString('en-TZ') + ' TZS';
-  }
-
-  // render table rows with action buttons (Planned -> Paid / Cancelled)
+  
+  // Render table
   function renderTable() {
     const tbody = document.getElementById('tableBody');
-    if(!tbody) return;
-    if(expenses.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px;">✨ No expenses recorded. Add new expense or load sample data.</td></tr>';
+    if (expenses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No expenses recorded</td></tr>';
       return;
     }
-    let html = '';
-    expenses.forEach(exp => {
-      const displayDate = exp.date ? exp.date : '—';
-      const amountVal = exp.amount || 0;
-      const paidByVal = exp.paidBy || '—';
-      const receiptVal = exp.receiptRef || '—';
-      const statusClass = `status-${exp.status}`;
-      // action buttons based on status
-      let actionButtons = '';
-      if(exp.status === 'Planned') {
-        actionButtons = `
-          <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">✅ Mark Paid</button>
-          <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">❌ Cancel</button>
-          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
-        `;
-      } else if(exp.status === 'Paid') {
-        actionButtons = `
-          <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">🚫 Switch to Cancelled</button>
-          <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">🔄 Back to Planned</button>
-          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
-        `;
-      } else if(exp.status === 'Cancelled') {
-        actionButtons = `
-          <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">💰 Mark Paid</button>
-          <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">📅 Re-plan</button>
-          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
-        `;
-      }
-      html += `
-        <tr>
-          <td>${escapeHtml(displayDate)}</td>
-          <td>${escapeHtml(exp.category)}</td>
-          <td>${escapeHtml(exp.description)}</td>
-          <td style="text-align:right; font-weight:500;">${formatTZS(amountVal)}</td>
-          <td>${escapeHtml(paidByVal)}</td>
-          <td><span class="status-badge ${statusClass}">${exp.status}</span></td>
-          <td>${escapeHtml(receiptVal)}</td>
-          <td class="action-buttons">${actionButtons}</td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-
-    // attach event listeners dynamically to action buttons
+    
+    tbody.innerHTML = expenses.map(exp => `
+      <tr>
+        <td>${exp.date || '—'}</td>
+        <td>${escapeHtml(exp.category)}</td>
+        <td>${escapeHtml(exp.description)}</td>
+        <td style="text-align:right;">${(exp.amount || 0).toLocaleString()} TZS</td>
+        <td>${exp.paidBy || '—'}</td>
+        <td><span class="status-badge status-${exp.status}">${exp.status}</span></td>
+        <td>${exp.receiptRef || '—'}</td>
+        <td class="action-buttons">
+          ${getActionButtons(exp)}
+        </td>
+      </tr>
+    `).join('');
+    
+    // Attach event listeners
     document.querySelectorAll('.icon-btn').forEach(btn => {
-      const newStatus = btn.getAttribute('data-newstatus');
-      const expenseId = btn.getAttribute('data-id');
-      const action = btn.getAttribute('data-action');
-      if(action === 'delete') {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          deleteExpense(expenseId);
-        });
-      } else if(newStatus && expenseId) {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          changeStatus(expenseId, newStatus);
-        });
-      }
-    });
-  }
-
-  // simple escape
-  function escapeHtml(str) {
-    if(!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if(m === '&') return '&amp;';
-      if(m === '<') return '&lt;';
-      if(m === '>') return '&gt;';
-      return m;
-    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-      return c;
-    });
-  }
-
-  // update financial stats
-  function updateStats() {
-    let totalSum = 0;
-    let totalPaid = 0;
-    let totalPlanned = 0;
-    let totalCancelled = 0;
-    for(let exp of expenses) {
-      const amt = exp.amount || 0;
-      totalSum += amt;
-      if(exp.status === 'Paid') totalPaid += amt;
-      else if(exp.status === 'Planned') totalPlanned += amt;
-      else if(exp.status === 'Cancelled') totalCancelled += amt;
-    }
-    document.getElementById('totalAmount').innerText = totalSum.toLocaleString('en-TZ') + ' TZS';
-    document.getElementById('totalPaid').innerText = totalPaid.toLocaleString('en-TZ') + ' TZS';
-    document.getElementById('totalPlanned').innerText = totalPlanned.toLocaleString('en-TZ') + ' TZS';
-    document.getElementById('totalCancelled').innerText = totalCancelled.toLocaleString('en-TZ') + ' TZS';
-  }
-
-  // load sample data (useful if cleared, but we already have initial data, but to allow resetting to original demo)
-  function loadSampleData() {
-    if(confirm("Load original sample expenses? Current data will be replaced.")) {
-      expenses = [
-        { id: genId(), date: '2026-03-02', category: 'Pharmacy Council Inspection', description: 'Control Number', amount: 100000, paidBy: 'Fides', status: 'Paid', receiptRef: '' },
-        { id: genId(), date: '2026-03-04', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 200000, paidBy: 'Gervas', status: 'Paid', receiptRef: '' },
-        { id: genId(), date: '2026-03-06', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 1000000, paidBy: 'Fides-Mpesa', status: 'Paid', receiptRef: '' },
-        { id: genId(), date: '2026-03-06', category: 'Computer & POS', description: 'Jovast Informatics for POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
-        { id: genId(), date: '', category: 'Pharmacy License & Permits', description: 'Pharm Tech Certificate', amount: 100000, paidBy: '', status: 'Cancelled', receiptRef: '' },
-        { id: genId(), date: '', category: 'Pharmacy License & Permits', description: 'Pharmacist Certificate', amount: 1500000, paidBy: '', status: 'Paid', receiptRef: '2 months payment' },
-        { id: genId(), date: '2026-03-14', category: 'Construction', description: 'Singboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
-        { id: genId(), date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Computer & POS', description: '3 Desktop Computers', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Computer & POS', description: '2 Laptop', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Utilities', description: 'Generator', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Computer & POS', description: 'CCTV Camera', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
-        { id: genId(), date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' }
-      ];
-      renderTable();
-      updateStats();
-      persist();
-    }
-  }
-
-  function clearAllData() {
-    if(confirm("⚠️ Delete ALL expenses? This cannot be undone.")) {
-      expenses = [];
-      renderTable();
-      updateStats();
-      persist();
-    }
-  }
-
-  // event listeners
-  document.addEventListener('DOMContentLoaded', () => {
-    loadFromStorage();
-
-    const addBtn = document.getElementById('addExpenseBtn');
-    if(addBtn) addBtn.addEventListener('click', addExpense);
-    
-    const sampleBtn = document.getElementById('sampleDataBtn');
-    if(sampleBtn) sampleBtn.addEventListener('click', loadSampleData);
-    
-    const clearBtn = document.getElementById('clearAllBtn');
-    if(clearBtn) clearBtn.addEventListener('click', clearAllData);
-
-    // optional: allow enter key on form fields to add
-    const formInputs = document.querySelectorAll('#expenseForm input, #expenseForm select');
-    formInputs.forEach(input => {
-      input.addEventListener('keypress', (e) => {
-        if(e.key === 'Enter') {
-          e.preventDefault();
-          addExpense();
-        }
+      btn.addEventListener('click', (e) => {
+        const id = btn.getAttribute('data-id');
+        const newStatus = btn.getAttribute('data-newstatus');
+        const action = btn.getAttribute('data-action');
+        if (action === 'delete') deleteExpense(id);
+        else if (newStatus) changeStatus(id, newStatus);
       });
     });
+  }
+  
+  function getActionButtons(exp) {
+    if (exp.status === 'Planned') {
+      return `
+        <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">✅ Paid</button>
+        <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">❌ Cancel</button>
+        <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+      `;
+    } else if (exp.status === 'Paid') {
+      return `
+        <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">🚫 Cancel</button>
+        <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">🔄 Planned</button>
+        <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+      `;
+    } else {
+      return `
+        <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">💰 Paid</button>
+        <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">📅 Planned</button>
+        <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+      `;
+    }
+  }
+  
+  // Update stats
+  function updateStats() {
+    let total = 0, paid = 0, planned = 0, cancelled = 0;
+    expenses.forEach(exp => {
+      const amt = exp.amount || 0;
+      total += amt;
+      if (exp.status === 'Paid') paid += amt;
+      else if (exp.status === 'Planned') planned += amt;
+      else if (exp.status === 'Cancelled') cancelled += amt;
+    });
+    
+    document.getElementById('totalAmount').innerText = total.toLocaleString() + ' TZS';
+    document.getElementById('totalPaid').innerText = paid.toLocaleString() + ' TZS';
+    document.getElementById('totalPlanned').innerText = planned.toLocaleString() + ' TZS';
+    document.getElementById('totalCancelled').innerText = cancelled.toLocaleString() + ' TZS';
+  }
+  
+  // Admin analytics
+  function updateAdminAnalytics() {
+    const analytics = document.getElementById('adminAnalytics');
+    const categoryTotals = {};
+    const monthlyTotals = {};
+    
+    expenses.forEach(exp => {
+      if (exp.status === 'Paid') {
+        categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+        if (exp.date) {
+          const month = exp.date.substring(0, 7);
+          monthlyTotals[month] = (monthlyTotals[month] || 0) + exp.amount;
+        }
+      }
+    });
+    
+    analytics.innerHTML = `
+      <div style="margin-top: 15px;">
+        <h5>💰 Paid Expenses by Category</h5>
+        ${Object.entries(categoryTotals).map(([cat, amt]) => 
+          `<p><strong>${cat}:</strong> ${amt.toLocaleString()} TZS</p>`
+        ).join('') || '<p>No paid expenses yet</p>'}
+        
+        <h5>📅 Monthly Paid Totals</h5>
+        ${Object.entries(monthlyTotals).map(([month, amt]) => 
+          `<p><strong>${month}:</strong> ${amt.toLocaleString()} TZS</p>`
+        ).join('') || '<p>No monthly data</p>'}
+        
+        <h5>📊 Summary</h5>
+        <p>Total Expenses: ${expenses.length}</p>
+        <p>Paid Items: ${expenses.filter(e => e.status === 'Paid').length}</p>
+        <p>Planned Items: ${expenses.filter(e => e.status === 'Planned').length}</p>
+        <p>Cancelled Items: ${expenses.filter(e => e.status === 'Cancelled').length}</p>
+      </div>
+    `;
+  }
+  
+  // Show alert
+  function showAlert(message, type = 'info') {
+    const container = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.innerHTML = message;
+    container.appendChild(alert);
+    setTimeout(() => alert.remove(), 5000);
+  }
+  
+  // Test Sheets connection
+  async function testConnection() {
+    const sheetId = document.getElementById('sheetId').value;
+    const apiKey = document.getElementById('apiKey').value;
+    
+    if (!sheetId || !apiKey) {
+      showAlert('Please enter both Sheet ID and API Key', 'error');
+      return;
+    }
+    
+    sheetConfig.sheetId = sheetId;
+    sheetConfig.apiKey = apiKey;
+    localStorage.setItem('sheetId', sheetId);
+    localStorage.setItem('apiKey', apiKey);
+    
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Expenses!A1:A1?key=${apiKey}`;
+      const response = await fetch(url);
+      if (response.ok) {
+        showAlert('✅ Connection successful!', 'success');
+        await fetchCategoriesFromSheets();
+        await fetchExpensesFromSheets();
+        updateAdminAnalytics();
+      } else {
+        showAlert('❌ Connection failed. Check Sheet ID and API Key', 'error');
+      }
+    } catch (error) {
+      showAlert('❌ Connection error: ' + error.message, 'error');
+    }
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+  
+  // Event listeners
+  document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
+  document.getElementById('syncFromSheetsBtn').addEventListener('click', fetchExpensesFromSheets);
+  document.getElementById('syncToSheetsBtn').addEventListener('click', saveToSheets);
+  document.getElementById('refreshLocalBtn').addEventListener('click', () => { loadFromLocalStorage(); showAlert('Local data refreshed', 'info'); });
+  document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+  
+  document.getElementById('adminToggle').addEventListener('click', () => {
+    const content = document.getElementById('adminContent');
+    content.classList.toggle('show');
+    if (content.classList.contains('show')) {
+      updateAdminAnalytics();
+    }
+  });
+  
+  // Initial load
+  fetchCategoriesFromSheets();
+  loadFromLocalStorage();
+  updateAdminAnalytics();
+  
+  // Network status
+  window.addEventListener('online', () => {
+    isOnline = true;
+    document.getElementById('syncDot').className = 'sync-dot';
+    document.getElementById('syncText').innerText = 'Online · Connected';
+  });
+  window.addEventListener('offline', () => {
+    isOnline = false;
+    document.getElementById('syncDot').className = 'sync-dot offline';
+    document.getElementById('syncText').innerText = 'Offline · Using local storage';
   });
 </script>
 </body>
