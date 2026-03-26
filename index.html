@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Cashier Expense Manager | Track & Status</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+    }
+
+    body {
+      background: #f0f4f8;
+      margin: 0;
+      padding: 24px 20px;
+      color: #1a2c3e;
+    }
+
+    .dashboard {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* header & branding */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+      border-bottom: 3px solid #2c7da0;
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin: 0;
+      background: linear-gradient(135deg, #1f5e7e, #2c7da0);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .badge-cashier {
+      background: #eef2f5;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: #1f5e7e;
+      border: 1px solid #cbdbe2;
+    }
+
+    /* cards & forms */
+    .card {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.05);
+      padding: 1.5rem 1.8rem;
+      margin-bottom: 32px;
+      transition: all 0.2s;
+      border: 1px solid #e2edf2;
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      color: #0f4c5f;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 5px solid #2c7da0;
+      padding-left: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      align-items: end;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #2c5a6e;
+    }
+
+    input, select, textarea {
+      background: #fefefe;
+      border: 1px solid #cbdbe6;
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      transition: 0.2s;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #2c7da0;
+      box-shadow: 0 0 0 2px rgba(44,125,160,0.2);
+    }
+
+    button {
+      background: #2c7da0;
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    button:hover {
+      background: #1f5e7e;
+      transform: scale(0.98);
+    }
+
+    .btn-outline {
+      background: white;
+      border: 1px solid #2c7da0;
+      color: #2c7da0;
+    }
+
+    .btn-outline:hover {
+      background: #e6f4fa;
+      transform: none;
+    }
+
+    /* table wrapper */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 24px;
+    }
+
+    .expense-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      min-width: 780px;
+    }
+
+    .expense-table th {
+      background: #e7f0f5;
+      padding: 14px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: #1c4e63;
+      border-bottom: 1px solid #cde1e8;
+    }
+
+    .expense-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #e9edf2;
+      vertical-align: middle;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-align: center;
+      min-width: 80px;
+    }
+
+    .status-Planned { background: #fff3cf; color: #ad7c00; }
+    .status-Paid { background: #d4f0e6; color: #1f7840; }
+    .status-Cancelled { background: #ffe6e5; color: #b13b2d; }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: 0.1s;
+    }
+
+    .btn-paid { background: #e0f3e9; color: #1e6f3c; }
+    .btn-cancel { background: #ffe2de; color: #bc4a3a; }
+    .btn-planned { background: #fef1cf; color: #b47c00; }
+    .btn-delete { background: #f0f0f4; color: #8a6e6b; }
+
+    .btn-paid:hover { background: #c2e5d4; }
+    .btn-cancel:hover { background: #ffcdc6; }
+    .btn-planned:hover { background: #faeaa9; }
+    .btn-delete:hover { background: #e2dbda; }
+
+    .summary-stats {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 32px;
+      padding: 12px 22px;
+      flex: 1;
+      min-width: 150px;
+      border: 1px solid #e2edf2;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: #5a7e8c;
+    }
+    .stat-number {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #1f5e7e;
+    }
+
+    hr {
+      margin: 12px 0;
+      border-color: #e2edf2;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.75rem;
+      color: #6f8f9c;
+    }
+
+    @media (max-width: 700px) {
+      .card {
+        padding: 1rem;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <h1>💰 Expense Ledger · Cashier Control</h1>
+    <div class="badge-cashier">👩‍💼 Cashier Session | Real-time Status</div>
+  </div>
+
+  <!-- summary stats -->
+  <div class="summary-stats" id="statsContainer">
+    <div class="stat-card"><div class="stat-label">Total Expenses (TZS)</div><div class="stat-number" id="totalAmount">0</div></div>
+    <div class="stat-card"><div class="stat-label">Paid Total</div><div class="stat-number" id="totalPaid">0</div></div>
+    <div class="stat-card"><div class="stat-label">Planned Total</div><div class="stat-number" id="totalPlanned">0</div></div>
+    <div class="stat-card"><div class="stat-label">Cancelled Total</div><div class="stat-number" id="totalCancelled">0</div></div>
+  </div>
+
+  <!-- ADD EXPENSE FORM -->
+  <div class="card">
+    <div class="card-title">➕ Record new expense</div>
+    <div class="form-grid" id="expenseForm">
+      <div class="input-group">
+        <label>📅 Payment Date</label>
+        <input type="date" id="payDate" value="2026-03-26">
+      </div>
+      <div class="input-group">
+        <label>📂 Expense Category</label>
+        <input type="text" id="expCategory" placeholder="e.g. Pharmacy Council, POS" value="Computer & POS">
+      </div>
+      <div class="input-group">
+        <label>📝 Description</label>
+        <input type="text" id="description" placeholder="Item details" value="New Hardware">
+      </div>
+      <div class="input-group">
+        <label>💰 Amount (TZS)</label>
+        <input type="number" id="amountTzs" placeholder="0" value="450000">
+      </div>
+      <div class="input-group">
+        <label>👤 Paid By</label>
+        <input type="text" id="paidBy" placeholder="Cashier / Name" value="Fides">
+      </div>
+      <div class="input-group">
+        <label>🔘 Status</label>
+        <select id="statusSelect">
+          <option value="Planned">Planned</option>
+          <option value="Paid">Paid</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>📎 Receipt Ref (optional)</label>
+        <input type="text" id="receiptRef" placeholder="Ref number / notes">
+      </div>
+      <div class="input-group">
+        <button id="addExpenseBtn">➕ Save Expense</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE TABLE + status management -->
+  <div class="card">
+    <div class="card-title">📋 All expenses · change status (Planned → Paid / Cancelled)</div>
+    <div class="table-wrapper">
+      <table class="expense-table" id="expenseTable">
+        <thead>
+          <tr><th>Payment Date</th><th>Category</th><th>Description</th><th>Amount (TZS)</th><th>Paid By</th><th>Status</th><th>Receipt Ref</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- dynamic rows -->
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+      <button id="sampleDataBtn" class="btn-outline" style="background: #f8fafc;">📋 Load sample expenses</button>
+      <button id="clearAllBtn" class="btn-outline" style="margin-left: 12px; border-color:#d4afb0; color:#a65348;">🗑 Clear all data</button>
+    </div>
+  </div>
+  <footer>Cashier can change status using action buttons. Planned → Paid or Cancelled. All changes update totals.</footer>
+</div>
+
+<script>
+  // ---------- STORAGE ----------
+  let expenses = [];   // each expense object
+
+  // load from localStorage if exists
+  function loadFromStorage() {
+    const stored = localStorage.getItem('cashier_expenses');
+    if(stored) {
+      try {
+        expenses = JSON.parse(stored);
+      } catch(e) { expenses = []; }
+    } else {
+      // initial demo data matching user's example (plus some extra for realistic flow)
+      expenses = [
+        { id: '1', date: '2026-03-02', category: 'Pharmacy Council Inspection', description: 'Control Number', amount: 100000, paidBy: 'Fides', status: 'Paid', receiptRef: '' },
+        { id: '2', date: '2026-03-04', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 200000, paidBy: 'Gervas', status: 'Paid', receiptRef: '' },
+        { id: '3', date: '2026-03-06', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 1000000, paidBy: 'Fides-Mpesa', status: 'Paid', receiptRef: '' },
+        { id: '4', date: '2026-03-06', category: 'Computer & POS', description: 'Jovast Informatics for POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
+        { id: '5', date: '', category: 'Pharmacy License & Permits', description: 'Pharm Tech Certificate', amount: 100000, paidBy: '', status: 'Cancelled', receiptRef: '' },
+        { id: '6', date: '', category: 'Pharmacy License & Permits', description: 'Pharmacist Certificate', amount: 1500000, paidBy: '', status: 'Paid', receiptRef: '2 months payment' },
+        { id: '7', date: '2026-03-14', category: 'Construction', description: 'Singboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
+        { id: '8', date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '9', date: '', category: 'Computer & POS', description: '3 Desktop Computers', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '10', date: '', category: 'Computer & POS', description: '2 Laptop', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '11', date: '', category: 'Utilities', description: 'Generator', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '12', date: '', category: 'Computer & POS', description: 'CCTV Camera', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '13', date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: '14', date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' }
+      ];
+    }
+    // ensure every object has id
+    if(!expenses.length || !expenses[0].id) {
+      expenses = expenses.map((exp, idx) => ({ ...exp, id: Date.now() + '-' + idx + '-' + Math.random() }));
+    }
+    renderTable();
+    updateStats();
+    persist();
+  }
+
+  function persist() {
+    localStorage.setItem('cashier_expenses', JSON.stringify(expenses));
+  }
+
+  // generate unique id
+  function genId() {
+    return Date.now() + '-' + Math.random().toString(36).substr(2, 8);
+  }
+
+  // add new expense from form
+  function addExpense() {
+    let date = document.getElementById('payDate').value;
+    const category = document.getElementById('expCategory').value.trim();
+    const description = document.getElementById('description').value.trim();
+    let amount = parseFloat(document.getElementById('amountTzs').value);
+    if(isNaN(amount)) amount = 0;
+    const paidBy = document.getElementById('paidBy').value.trim();
+    const status = document.getElementById('statusSelect').value;
+    const receiptRef = document.getElementById('receiptRef').value.trim();
+
+    if(!category) { alert("Please enter Expense Category"); return; }
+    if(!description) { alert("Please enter Description"); return; }
+    if(amount < 0) amount = 0;
+
+    const newExpense = {
+      id: genId(),
+      date: date,
+      category: category,
+      description: description,
+      amount: amount,
+      paidBy: paidBy,
+      status: status,
+      receiptRef: receiptRef,
+    };
+    expenses.unshift(newExpense); // newest on top
+    renderTable();
+    updateStats();
+    persist();
+    // reset some fields for convenience, keep date & category maybe but clear description/amount
+    document.getElementById('description').value = '';
+    document.getElementById('amountTzs').value = '';
+    document.getElementById('receiptRef').value = '';
+    document.getElementById('paidBy').value = '';
+    // set default status maybe Planned? but keep user selection, but reset to Planned for next fast entry
+    document.getElementById('statusSelect').value = 'Planned';
+    // focus description
+    document.getElementById('description').focus();
+  }
+
+  // change status of specific expense
+  function changeStatus(expenseId, newStatus) {
+    const expense = expenses.find(e => e.id === expenseId);
+    if(!expense) return;
+    // optional: prevent no-change, but it's fine
+    expense.status = newStatus;
+    renderTable();
+    updateStats();
+    persist();
+  }
+
+  // delete expense
+  function deleteExpense(expenseId) {
+    if(confirm("Remove this expense entry?")) {
+      expenses = expenses.filter(e => e.id !== expenseId);
+      renderTable();
+      updateStats();
+      persist();
+    }
+  }
+
+  // format number with commas
+  function formatTZS(amount) {
+    return amount.toLocaleString('en-TZ') + ' TZS';
+  }
+
+  // render table rows with action buttons (Planned -> Paid / Cancelled)
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    if(!tbody) return;
+    if(expenses.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px;">✨ No expenses recorded. Add new expense or load sample data.</td></tr>';
+      return;
+    }
+    let html = '';
+    expenses.forEach(exp => {
+      const displayDate = exp.date ? exp.date : '—';
+      const amountVal = exp.amount || 0;
+      const paidByVal = exp.paidBy || '—';
+      const receiptVal = exp.receiptRef || '—';
+      const statusClass = `status-${exp.status}`;
+      // action buttons based on status
+      let actionButtons = '';
+      if(exp.status === 'Planned') {
+        actionButtons = `
+          <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">✅ Mark Paid</button>
+          <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">❌ Cancel</button>
+          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+        `;
+      } else if(exp.status === 'Paid') {
+        actionButtons = `
+          <button class="icon-btn btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled">🚫 Switch to Cancelled</button>
+          <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">🔄 Back to Planned</button>
+          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+        `;
+      } else if(exp.status === 'Cancelled') {
+        actionButtons = `
+          <button class="icon-btn btn-paid" data-id="${exp.id}" data-newstatus="Paid">💰 Mark Paid</button>
+          <button class="icon-btn btn-planned" data-id="${exp.id}" data-newstatus="Planned">📅 Re-plan</button>
+          <button class="icon-btn btn-delete" data-id="${exp.id}" data-action="delete">🗑 Del</button>
+        `;
+      }
+      html += `
+        <tr>
+          <td>${escapeHtml(displayDate)}</td>
+          <td>${escapeHtml(exp.category)}</td>
+          <td>${escapeHtml(exp.description)}</td>
+          <td style="text-align:right; font-weight:500;">${formatTZS(amountVal)}</td>
+          <td>${escapeHtml(paidByVal)}</td>
+          <td><span class="status-badge ${statusClass}">${exp.status}</span></td>
+          <td>${escapeHtml(receiptVal)}</td>
+          <td class="action-buttons">${actionButtons}</td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+
+    // attach event listeners dynamically to action buttons
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+      const newStatus = btn.getAttribute('data-newstatus');
+      const expenseId = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      if(action === 'delete') {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          deleteExpense(expenseId);
+        });
+      } else if(newStatus && expenseId) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          changeStatus(expenseId, newStatus);
+        });
+      }
+    });
+  }
+
+  // simple escape
+  function escapeHtml(str) {
+    if(!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if(m === '&') return '&amp;';
+      if(m === '<') return '&lt;';
+      if(m === '>') return '&gt;';
+      return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+      return c;
+    });
+  }
+
+  // update financial stats
+  function updateStats() {
+    let totalSum = 0;
+    let totalPaid = 0;
+    let totalPlanned = 0;
+    let totalCancelled = 0;
+    for(let exp of expenses) {
+      const amt = exp.amount || 0;
+      totalSum += amt;
+      if(exp.status === 'Paid') totalPaid += amt;
+      else if(exp.status === 'Planned') totalPlanned += amt;
+      else if(exp.status === 'Cancelled') totalCancelled += amt;
+    }
+    document.getElementById('totalAmount').innerText = totalSum.toLocaleString('en-TZ') + ' TZS';
+    document.getElementById('totalPaid').innerText = totalPaid.toLocaleString('en-TZ') + ' TZS';
+    document.getElementById('totalPlanned').innerText = totalPlanned.toLocaleString('en-TZ') + ' TZS';
+    document.getElementById('totalCancelled').innerText = totalCancelled.toLocaleString('en-TZ') + ' TZS';
+  }
+
+  // load sample data (useful if cleared, but we already have initial data, but to allow resetting to original demo)
+  function loadSampleData() {
+    if(confirm("Load original sample expenses? Current data will be replaced.")) {
+      expenses = [
+        { id: genId(), date: '2026-03-02', category: 'Pharmacy Council Inspection', description: 'Control Number', amount: 100000, paidBy: 'Fides', status: 'Paid', receiptRef: '' },
+        { id: genId(), date: '2026-03-04', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 200000, paidBy: 'Gervas', status: 'Paid', receiptRef: '' },
+        { id: genId(), date: '2026-03-06', category: 'Pharmacy Council Inspection', description: 'Cash to Inspector', amount: 1000000, paidBy: 'Fides-Mpesa', status: 'Paid', receiptRef: '' },
+        { id: genId(), date: '2026-03-06', category: 'Computer & POS', description: 'Jovast Informatics for POS Installation', amount: 3000000, paidBy: 'Gervas-NMB', status: 'Paid', receiptRef: '' },
+        { id: genId(), date: '', category: 'Pharmacy License & Permits', description: 'Pharm Tech Certificate', amount: 100000, paidBy: '', status: 'Cancelled', receiptRef: '' },
+        { id: genId(), date: '', category: 'Pharmacy License & Permits', description: 'Pharmacist Certificate', amount: 1500000, paidBy: '', status: 'Paid', receiptRef: '2 months payment' },
+        { id: genId(), date: '2026-03-14', category: 'Construction', description: 'Singboards', amount: 2000000, paidBy: 'All', status: 'Paid', receiptRef: '' },
+        { id: genId(), date: '2026-03-17', category: 'Staff Salary', description: 'Salesperson', amount: 300000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Computer & POS', description: '3 Desktop Computers', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Computer & POS', description: '2 Laptop', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Utilities', description: 'Generator', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Computer & POS', description: 'CCTV Camera', amount: 0, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Computer & POS', description: 'Backup System', amount: 3100000, paidBy: '', status: 'Planned', receiptRef: '' },
+        { id: genId(), date: '', category: 'Construction', description: 'Miango', amount: 3500000, paidBy: '', status: 'Planned', receiptRef: '' }
+      ];
+      renderTable();
+      updateStats();
+      persist();
+    }
+  }
+
+  function clearAllData() {
+    if(confirm("⚠️ Delete ALL expenses? This cannot be undone.")) {
+      expenses = [];
+      renderTable();
+      updateStats();
+      persist();
+    }
+  }
+
+  // event listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    loadFromStorage();
+
+    const addBtn = document.getElementById('addExpenseBtn');
+    if(addBtn) addBtn.addEventListener('click', addExpense);
+    
+    const sampleBtn = document.getElementById('sampleDataBtn');
+    if(sampleBtn) sampleBtn.addEventListener('click', loadSampleData);
+    
+    const clearBtn = document.getElementById('clearAllBtn');
+    if(clearBtn) clearBtn.addEventListener('click', clearAllData);
+
+    // optional: allow enter key on form fields to add
+    const formInputs = document.querySelectorAll('#expenseForm input, #expenseForm select');
+    formInputs.forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') {
+          e.preventDefault();
+          addExpense();
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>
