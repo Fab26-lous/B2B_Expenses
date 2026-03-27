@@ -1,41 +1,1229 @@
-function addExpense(sheet, params) {
-  var newRow = [
-    params.id,
-    params.date,
-    params.category,
-    params.description,
-    parseFloat(params.amount),
-    params.paidBy,
-    params.status,
-    params.receiptRef
-  ];
-  
-  sheet.appendRow(newRow);
-  return { success: true, message: "Expense saved" };
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>CashierPro | Expense Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-function updateStatus(sheet, params) {
-  var data = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] && data[i][0].toString() === params.id) {
-      sheet.getRange(i + 1, 7).setValue(params.status);
-      break;
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  }
-  
-  return { success: true, message: "Status updated" };
-}
 
-function deleteExpense(sheet, params) {
-  var data = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] && data[i][0].toString() === params.id) {
-      sheet.deleteRow(i + 1);
-      break;
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --primary-soft: #eef2ff;
+      --success: #16a34a;
+      --success-soft: #dcfce7;
+      --warning: #d97706;
+      --warning-soft: #fef3c7;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
     }
-  }
-  
-  return { success: true, message: "Expense deleted" };
-}
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 30%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .dashboard {
+      max-width: 1450px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 28px;
+      padding: 22px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+
+    .logo-area h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-area p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .status-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 12px 18px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .status-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.loading {
+      background: var(--warning);
+      animation: pulse 0.8s infinite;
+    }
+
+    .status-dot.error {
+      background: var(--danger);
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.18); }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      border: 1px solid #eef2f7;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.10);
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+    }
+
+    .stat-icon.total { background: #eef2ff; color: var(--primary); }
+    .stat-icon.paid { background: var(--success-soft); color: var(--success); }
+    .stat-icon.planned { background: var(--warning-soft); color: var(--warning); }
+    .stat-icon.cancelled { background: var(--danger-soft); color: var(--danger); }
+
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .main-card {
+      background: var(--card);
+      border-radius: 28px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid #eef2f7;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title i {
+      color: var(--primary);
+    }
+
+    .section-subtitle {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .quick-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .quick-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #374151;
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quick-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-group.wide {
+      grid-column: span 2;
+    }
+
+    .input-group label {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-wrap i.field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 13px 15px;
+      border: 1.8px solid var(--border);
+      border-radius: 16px;
+      font-size: 0.96rem;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      transition: all 0.22s ease;
+      color: var(--text);
+    }
+
+    .field-wrap.has-icon input,
+    .field-wrap.has-icon select {
+      padding-left: 42px;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      background: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.10);
+    }
+
+    .helper {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .btn-primary, .btn-secondary, .btn-light {
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 16px;
+      font-size: 0.96rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      padding: 14px 22px;
+      min-width: 180px;
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.22);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--primary);
+      border: 1.8px solid #c7d2fe;
+      padding: 13px 18px;
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-soft);
+    }
+
+    .btn-light {
+      background: #f8fafc;
+      color: #334155;
+      border: 1px solid var(--border);
+      padding: 13px 18px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      min-width: 260px;
+      padding-left: 40px;
+      background: #fff;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .last-updated {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+    }
+
+    .expense-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+      background: #fff;
+    }
+
+    .expense-table th {
+      background: #f8fafc;
+      color: #475569;
+      text-align: left;
+      padding: 16px 14px;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 800;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .expense-table td {
+      padding: 15px 14px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: middle;
+      font-size: 0.93rem;
+    }
+
+    .expense-table tbody tr:hover {
+      background: #fafbff;
+    }
+
+    .category-badge {
+      display: inline-block;
+      max-width: 210px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: var(--primary-soft);
+      color: var(--primary);
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .description-text {
+      display: inline-block;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #334155;
+    }
+
+    .amount-cell {
+      font-weight: 800;
+      color: #111827;
+      white-space: nowrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 96px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .status-Planned { background: var(--warning-soft); color: #92400e; }
+    .status-Paid { background: var(--success-soft); color: #166534; }
+    .status-Cancelled { background: var(--danger-soft); color: #991b1b; }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 8px 11px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .action-btn-paid { background: var(--success-soft); color: #166534; }
+    .action-btn-cancel { background: var(--danger-soft); color: #991b1b; }
+    .action-btn-planned { background: var(--warning-soft); color: #92400e; }
+    .action-btn-delete { background: #e5e7eb; color: #374151; }
+
+    .empty-state {
+      text-align: center;
+      padding: 54px 18px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .empty-state i {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      display: inline-block;
+      color: #94a3b8;
+    }
+
+    .alert {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      padding: 14px 16px;
+      z-index: 2000;
+      max-width: 360px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      animation: slideIn 0.25s ease;
+      border-left: 5px solid #cbd5e1;
+    }
+
+    .alert-success { border-left-color: var(--success); }
+    .alert-error { border-left-color: var(--danger); }
+    .alert-info { border-left-color: var(--primary); }
+
+    @keyframes slideIn {
+      from { transform: translateX(110%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .top-note {
+      margin-top: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px 16px;
+      color: #475569;
+      font-size: 0.88rem;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .top-note i {
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    @media (max-width: 900px) {
+      .input-group.wide {
+        grid-column: span 1;
+      }
+
+      .search-box input {
+        min-width: 100%;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+
+      .header,
+      .main-card,
+      .stat-card {
+        border-radius: 20px;
+      }
+
+      .logo-area h1 {
+        font-size: 1.5rem;
+      }
+
+      .stat-number {
+        font-size: 1.35rem;
+      }
+
+      .form-actions {
+        flex-direction: column;
+      }
+
+      .btn-primary, .btn-secondary, .btn-light {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <div class="logo-area">
+        <h1><i class="fas fa-wallet"></i> CashierPro</h1>
+        <p>Expense recording made simple and fast</p>
+      </div>
+
+      <div class="status-card" id="syncStatusCard">
+        <div class="status-dot" id="syncDot"></div>
+        <span id="syncText">Ready</span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Total Expenses</span>
+          <div class="stat-icon total"><i class="fas fa-chart-line"></i></div>
+        </div>
+        <div class="stat-number" id="totalAmount">0 TZS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Paid</span>
+          <div class="stat-icon paid"><i class="fas fa-check-circle"></i></div>
+        </div>
+        <div class="stat-number" id="totalPaid">0 TZS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Planned</span>
+          <div class="stat-icon planned"><i class="fas fa-clock"></i></div>
+        </div>
+        <div class="stat-number" id="totalPlanned">0 TZS</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Cancelled</span>
+          <div class="stat-icon cancelled"><i class="fas fa-ban"></i></div>
+        </div>
+        <div class="stat-number" id="totalCancelled">0 TZS</div>
+      </div>
+    </div>
+
+    <div class="main-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <i class="fas fa-plus-circle"></i>
+            <span>Record New Expense</span>
+          </div>
+          <div class="section-subtitle">Enter the details below and save the record.</div>
+        </div>
+      </div>
+
+      <div class="quick-bar">
+        <button class="quick-btn" type="button" onclick="setToday()"><i class="fas fa-calendar-day"></i> Today</button>
+        <button class="quick-btn" type="button" onclick="setStatusQuick('Paid')"><i class="fas fa-check"></i> Mark as Paid</button>
+        <button class="quick-btn" type="button" onclick="setStatusQuick('Planned')"><i class="fas fa-clock"></i> Mark as Planned</button>
+        <button class="quick-btn" type="button" onclick="clearForm()"><i class="fas fa-eraser"></i> Clear Form</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-group">
+          <label><i class="fas fa-calendar-alt"></i> Payment Date</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-calendar-alt field-icon"></i>
+            <input type="date" id="payDate">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label><i class="fas fa-folder"></i> Expense Category</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-folder-open field-icon"></i>
+            <select id="expCategory">
+              <option>Loading...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group wide">
+          <label><i class="fas fa-pen"></i> Description</label>
+          <div class="field-wrap">
+            <input type="text" id="description" placeholder="What was this expense for?">
+          </div>
+          <div class="helper">Example: Fuel for outreach vehicle, office stationery, plumber payment</div>
+        </div>
+
+        <div class="input-group">
+          <label><i class="fas fa-money-bill-wave"></i> Amount (TZS)</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-coins field-icon"></i>
+            <input type="number" id="amountTzs" placeholder="0" min="0" step="0.01">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label><i class="fas fa-user"></i> Paid By</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-user field-icon"></i>
+            <input type="text" id="paidBy" placeholder="Who made the payment?">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label><i class="fas fa-tag"></i> Status</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-flag field-icon"></i>
+            <select id="statusSelect">
+              <option value="Planned">Planned</option>
+              <option value="Paid">Paid</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label><i class="fas fa-receipt"></i> Receipt Reference</label>
+          <div class="field-wrap has-icon">
+            <i class="fas fa-receipt field-icon"></i>
+            <input type="text" id="receiptRef" placeholder="Receipt number or note">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button id="addExpenseBtn" class="btn-primary">
+          <i class="fas fa-save"></i> Save Expense
+        </button>
+        <button type="button" class="btn-light" onclick="clearForm()">
+          <i class="fas fa-rotate-left"></i> Reset Fields
+        </button>
+      </div>
+
+      <div class="top-note">
+        <i class="fas fa-circle-info"></i>
+        <div>
+          Tip: fill category, description, and amount first. The form is arranged to make daily entry faster.
+        </div>
+      </div>
+    </div>
+
+    <div class="main-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <i class="fas fa-table"></i>
+            <span>Expense Records</span>
+          </div>
+          <div class="section-subtitle">View, search, and update the existing records.</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button id="refreshBtn" class="btn-secondary">
+            <i class="fas fa-rotate"></i> Refresh
+          </button>
+
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search category, description, paid by, receipt...">
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <span id="lastSyncTime" class="last-updated"></span>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="expense-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Paid By</th>
+              <th>Status</th>
+              <th>Reference</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="8" class="empty-state">
+                <i class="fas fa-hourglass-half"></i><br>
+                Loading records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWdN3rloPDqSx_xCnR90Gwa43yxoCnqu84-2fFOkthJZ64sIF993Z2pn6VcGdxlWg-/exec";
+
+    let expenses = [];
+    let categories = [];
+    let isLoading = false;
+    let lastSync = null;
+    let searchTerm = '';
+
+    function formatDateForInput(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function initDefaultDate() {
+      document.getElementById('payDate').value = formatDateForInput();
+    }
+
+    function setToday() {
+      document.getElementById('payDate').value = formatDateForInput();
+    }
+
+    function setStatusQuick(status) {
+      document.getElementById('statusSelect').value = status;
+    }
+
+    function clearForm() {
+      document.getElementById('description').value = '';
+      document.getElementById('amountTzs').value = '';
+      document.getElementById('receiptRef').value = '';
+      document.getElementById('paidBy').value = '';
+      document.getElementById('statusSelect').value = 'Planned';
+      document.getElementById('description').focus();
+    }
+
+    function updateSyncStatus(status, message) {
+      const dot = document.getElementById('syncDot');
+      const text = document.getElementById('syncText');
+
+      dot.className = 'status-dot';
+
+      if (status === 'loading') {
+        dot.classList.add('loading');
+        text.textContent = message || 'Loading...';
+      } else if (status === 'ready') {
+        text.textContent = message || 'Ready';
+      } else if (status === 'error') {
+        dot.classList.add('error');
+        text.textContent = message || 'Unavailable';
+      }
+    }
+
+    async function callAppsScript(action, data = {}) {
+      const params = new URLSearchParams({ action, ...data });
+      const url = `${GOOGLE_APPS_SCRIPT_URL}?${params.toString()}&t=${Date.now()}`;
+
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('Error calling Apps Script:', error);
+        return null;
+      }
+    }
+
+    async function fetchExpenses() {
+      if (isLoading) return;
+      isLoading = true;
+      updateSyncStatus('loading', 'Loading records...');
+
+      try {
+        const result = await callAppsScript('getExpenses');
+        if (result && result.success) {
+          expenses = result.data || [];
+          expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          renderTable();
+          updateStats();
+          updateSyncStatus('ready', 'Ready');
+          lastSync = new Date();
+          document.getElementById('lastSyncTime').textContent =
+            `Last updated: ${lastSync.toLocaleTimeString()}`;
+
+          localStorage.setItem('cached_expenses', JSON.stringify(expenses));
+        } else {
+          throw new Error('Failed to fetch expenses');
+        }
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        updateSyncStatus('error', 'Unable to load');
+        const cached = localStorage.getItem('cached_expenses');
+        if (cached) {
+          expenses = JSON.parse(cached);
+          renderTable();
+          updateStats();
+          showAlert('Showing previously loaded records.', 'info');
+        } else {
+          renderTable();
+        }
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    async function fetchCategories() {
+      try {
+        const result = await callAppsScript('getCategories');
+        if (result && result.success && result.data.length > 0) {
+          categories = result.data;
+        } else {
+          categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary', 'Utilities'];
+        }
+      } catch (error) {
+        categories = ['Pharmacy Council Inspection', 'Computer & POS', 'Construction', 'Staff Salary', 'Utilities'];
+      }
+      updateCategoryDropdown();
+    }
+
+    async function addExpenseToSystem(expense) {
+      updateSyncStatus('loading', 'Saving record...');
+
+      try {
+        const result = await callAppsScript('addExpense', {
+          id: expense.id,
+          date: expense.date,
+          category: expense.category,
+          description: expense.description,
+          amount: expense.amount,
+          paidBy: expense.paidBy,
+          status: expense.status,
+          receiptRef: expense.receiptRef
+        });
+
+        if (result && result.success) {
+          updateSyncStatus('ready', 'Ready');
+          return true;
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (error) {
+        updateSyncStatus('error', 'Save failed');
+        return false;
+      }
+    }
+
+    async function updateStatusInSystem(expenseId, newStatus) {
+      try {
+        const result = await callAppsScript('updateStatus', {
+          id: expenseId,
+          status: newStatus
+        });
+        return result && result.success;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function deleteExpenseFromSystem(expenseId) {
+      try {
+        const result = await callAppsScript('deleteExpense', {
+          id: expenseId
+        });
+        return result && result.success;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function updateCategoryDropdown() {
+      const select = document.getElementById('expCategory');
+      select.innerHTML = categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+    }
+
+    async function addExpense() {
+      const newExpense = {
+        id: Date.now() + '-' + Math.random().toString(36).substr(2, 8),
+        date: document.getElementById('payDate').value,
+        category: document.getElementById('expCategory').value,
+        description: document.getElementById('description').value.trim(),
+        amount: parseFloat(document.getElementById('amountTzs').value) || 0,
+        paidBy: document.getElementById('paidBy').value.trim(),
+        status: document.getElementById('statusSelect').value,
+        receiptRef: document.getElementById('receiptRef').value.trim()
+      };
+
+      if (!newExpense.category || !newExpense.description || !newExpense.amount) {
+        showAlert('Please fill category, description, and amount.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('addExpenseBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+      const saved = await addExpenseToSystem(newExpense);
+
+      if (saved) {
+        expenses.unshift(newExpense);
+        renderTable();
+        updateStats();
+        showAlert('Expense saved successfully.', 'success');
+        clearForm();
+      } else {
+        showAlert('Failed to save. Please check the connection and try again.', 'error');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save"></i> Save Expense';
+    }
+
+    async function changeStatus(expenseId, newStatus) {
+      const expense = expenses.find(e => e.id === expenseId);
+      if (!expense) return;
+
+      const oldStatus = expense.status;
+      expense.status = newStatus;
+      renderTable();
+      updateStats();
+
+      const updated = await updateStatusInSystem(expenseId, newStatus);
+
+      if (updated) {
+        showAlert(`Status changed to ${newStatus}.`, 'success');
+      } else {
+        expense.status = oldStatus;
+        renderTable();
+        updateStats();
+        showAlert('Failed to update status.', 'error');
+      }
+    }
+
+    async function deleteExpense(expenseId) {
+      if (!confirm('Delete this expense record?')) return;
+
+      const deleted = await deleteExpenseFromSystem(expenseId);
+
+      if (deleted) {
+        expenses = expenses.filter(e => e.id !== expenseId);
+        renderTable();
+        updateStats();
+        showAlert('Expense deleted successfully.', 'success');
+      } else {
+        showAlert('Failed to delete the record.', 'error');
+      }
+    }
+
+    function truncateText(text, maxLength) {
+      if (!text) return '—';
+      return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+
+    function getFilteredExpenses() {
+      if (!searchTerm.trim()) return expenses;
+
+      const term = searchTerm.toLowerCase();
+      return expenses.filter(exp =>
+        String(exp.date || '').toLowerCase().includes(term) ||
+        String(exp.category || '').toLowerCase().includes(term) ||
+        String(exp.description || '').toLowerCase().includes(term) ||
+        String(exp.paidBy || '').toLowerCase().includes(term) ||
+        String(exp.status || '').toLowerCase().includes(term) ||
+        String(exp.receiptRef || '').toLowerCase().includes(term)
+      );
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      const filteredExpenses = getFilteredExpenses();
+
+      if (filteredExpenses.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty-state">
+              <i class="fas fa-inbox"></i><br>
+              No matching expenses found.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filteredExpenses.map(exp => `
+        <tr>
+          <td>${exp.date || '—'}</td>
+          <td><span class="category-badge" title="${escapeHtml(exp.category)}">${escapeHtml(truncateText(exp.category, 25))}</span></td>
+          <td><span class="description-text" title="${escapeHtml(exp.description)}">${escapeHtml(truncateText(exp.description, 36))}</span></td>
+          <td class="amount-cell">${Number(exp.amount || 0).toLocaleString()} TZS</td>
+          <td>${escapeHtml(exp.paidBy || '—')}</td>
+          <td><span class="status-badge status-${escapeHtml(exp.status)}">${escapeHtml(exp.status || '—')}</span></td>
+          <td><small>${escapeHtml(exp.receiptRef || '—')}</small></td>
+          <td class="action-buttons">${getActionButtons(exp)}</td>
+        </tr>
+      `).join('');
+
+      document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          const newStatus = btn.getAttribute('data-newstatus');
+          const action = btn.getAttribute('data-action');
+
+          if (action === 'delete') deleteExpense(id);
+          else if (newStatus) changeStatus(id, newStatus);
+        });
+      });
+    }
+
+    function getActionButtons(exp) {
+      if (exp.status === 'Planned') {
+        return `
+          <button class="action-btn action-btn-paid" data-id="${exp.id}" data-newstatus="Paid"><i class="fas fa-check"></i> Paid</button>
+          <button class="action-btn action-btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled"><i class="fas fa-times"></i> Cancel</button>
+          <button class="action-btn action-btn-delete" data-id="${exp.id}" data-action="delete"><i class="fas fa-trash"></i></button>
+        `;
+      } else if (exp.status === 'Paid') {
+        return `
+          <button class="action-btn action-btn-cancel" data-id="${exp.id}" data-newstatus="Cancelled"><i class="fas fa-ban"></i> Cancel</button>
+          <button class="action-btn action-btn-planned" data-id="${exp.id}" data-newstatus="Planned"><i class="fas fa-clock"></i> Planned</button>
+          <button class="action-btn action-btn-delete" data-id="${exp.id}" data-action="delete"><i class="fas fa-trash"></i></button>
+        `;
+      } else {
+        return `
+          <button class="action-btn action-btn-paid" data-id="${exp.id}" data-newstatus="Paid"><i class="fas fa-check"></i> Paid</button>
+          <button class="action-btn action-btn-planned" data-id="${exp.id}" data-newstatus="Planned"><i class="fas fa-clock"></i> Planned</button>
+          <button class="action-btn action-btn-delete" data-id="${exp.id}" data-action="delete"><i class="fas fa-trash"></i></button>
+        `;
+      }
+    }
+
+    function updateStats() {
+      let total = 0, paid = 0, planned = 0, cancelled = 0;
+
+      expenses.forEach(exp => {
+        const amt = Number(exp.amount || 0);
+        total += amt;
+        if (exp.status === 'Paid') paid += amt;
+        else if (exp.status === 'Planned') planned += amt;
+        else if (exp.status === 'Cancelled') cancelled += amt;
+      });
+
+      document.getElementById('totalAmount').textContent = total.toLocaleString() + ' TZS';
+      document.getElementById('totalPaid').textContent = paid.toLocaleString() + ' TZS';
+      document.getElementById('totalPlanned').textContent = planned.toLocaleString() + ' TZS';
+      document.getElementById('totalCancelled').textContent = cancelled.toLocaleString() + ' TZS';
+    }
+
+    function showAlert(message, type) {
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type}`;
+      alert.innerHTML = `
+        <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <div>${message}</div>
+      `;
+      document.body.appendChild(alert);
+      setTimeout(() => alert.remove(), 3500);
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return m;
+      });
+    }
+
+    document.getElementById('addExpenseBtn').addEventListener('click', addExpense);
+    document.getElementById('refreshBtn').addEventListener('click', fetchExpenses);
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+      searchTerm = this.value;
+      renderTable();
+    });
+
+    document.getElementById('amountTzs').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addExpense();
+    });
+
+    document.getElementById('description').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('amountTzs').focus();
+      }
+    });
+
+    initDefaultDate();
+    fetchCategories();
+    fetchExpenses();
+
+    setInterval(() => {
+      fetchExpenses();
+    }, 30000);
+  </script>
+</body>
+</html>
